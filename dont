@@ -116,13 +116,23 @@ minimizeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Arrastar GUI
+-- Arrastar GUI (desktop + mobile)
 local dragging = false
 local dragStart, startPos
 local dragInput
 
+local function updateDrag(input)
+    local delta = input.Position - dragStart
+    mainFrame.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
+end
+
 titleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
         startPos = mainFrame.Position
@@ -135,20 +145,14 @@ titleBar.InputBegan:Connect(function(input)
 end)
 
 titleBar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
         dragInput = input
     end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
     if dragging and input == dragInput then
-        local delta = input.Position - dragStart
-        mainFrame.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
-        )
+        updateDrag(input)
     end
 end)
 
@@ -159,7 +163,6 @@ safeBtn.MouseButton1Click:Connect(function()
     local humanoid = char:FindFirstChildWhichIsA("Humanoid")
     local signPart = workspace:FindFirstChild("Sign")
     if hrp and humanoid and signPart and signPart:IsA("BasePart") then
-        -- Mantém o Humanoid em pé
         hrp.CFrame = CFrame.new(signPart.Position + Vector3.new(0,10,0))
     end
 end)
