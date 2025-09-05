@@ -1,50 +1,192 @@
--- Script para executores (Delta, Arceus, Xeno, etc.)
--- Dois botões alinhados: "Teleport Sell" embaixo e "Speed" em cima
-
+-- Robot-GUI estilosa com Safe e Speed
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
-local sellModel = workspace:WaitForChild("Sell")
+local UserInputService = game:GetService("UserInputService")
 
--- Criando a GUI principal
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = game:GetService("CoreGui")
+-- Criar GUI principal
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = game:GetService("CoreGui")
 
--- Função para criar botões
-local function createButton(text, offsetY)
-    local Button = Instance.new("TextButton")
-    Button.Size = UDim2.new(0, 150, 0, 50)
-    Button.Position = UDim2.new(1, -160, 1, offsetY)
-    Button.Text = text
-    Button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Button.Font = Enum.Font.SourceSansBold
-    Button.TextSize = 20
-    Button.Parent = ScreenGui
-    Button.Active = true
-    Button.Draggable = false -- botão fixo, não arrastável
-    return Button
+-- Frame principal estiloso
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 280, 0, 150)
+mainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+mainFrame.ClipsDescendants = true
+
+-- Bordas arredondadas completas
+local frameUICorner = Instance.new("UICorner")
+frameUICorner.CornerRadius = UDim.new(0, 14)
+frameUICorner.Parent = mainFrame
+
+-- Sombra sutil
+local frameShadow = Instance.new("UIStroke")
+frameShadow.Thickness = 1
+frameShadow.Transparency = 0.7
+frameShadow.Color = Color3.fromRGB(0,0,0)
+frameShadow.Parent = mainFrame
+
+-- Barra superior estilosa
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 32)
+titleBar.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = mainFrame
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, -40, 1, 0)
+titleLabel.Position = UDim2.new(0, 10, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Robot-GUI"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextScaled = true
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Parent = titleBar
+
+-- Botão minimizar
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0, 30, 1, 0)
+minimizeBtn.Position = UDim2.new(1, -35, 0, 0)
+minimizeBtn.BackgroundTransparency = 1
+minimizeBtn.Text = "-"
+minimizeBtn.TextScaled = true
+minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.Parent = titleBar
+
+-- Conteúdo do painel
+local contentFrame = Instance.new("Frame")
+contentFrame.Size = UDim2.new(1, 0, 1, -32)
+contentFrame.Position = UDim2.new(0, 0, 0, 32)
+contentFrame.BackgroundTransparency = 1
+contentFrame.Parent = mainFrame
+
+-- Função para criar botões bonitos
+local function createButton(text, yPos, color)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -40, 0, 40)
+    btn.Position = UDim2.new(0, 20, 0, yPos)
+    btn.BackgroundColor3 = color
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextScaled = true
+    btn.Font = Enum.Font.GothamSemibold
+    btn.BorderSizePixel = 0
+    btn.Parent = contentFrame
+
+    -- Bordas arredondadas
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = btn
+
+    -- Sombra do botão
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(0,0,0)
+    stroke.Thickness = 1
+    stroke.Transparency = 0.6
+    stroke.Parent = btn
+
+    -- Hover effect
+    btn.MouseEnter:Connect(function()
+        btn.BackgroundColor3 = btn.BackgroundColor3:Lerp(Color3.fromRGB(180,180,180),0.15)
+    end)
+    btn.MouseLeave:Connect(function()
+        btn.BackgroundColor3 = color
+    end)
+
+    return btn
 end
 
--- Criando botões alinhados
-local sellButton = createButton("Teleport Sell", -60) -- embaixo
-local speedButton = createButton("Speed", -115)       -- 55px acima, alinhado
+-- Botões próximos
+local safeBtn = createButton("Safe", 10, Color3.fromRGB(52, 152, 219))
+local speedBtn = createButton("⚡ Speed", 65, Color3.fromRGB(46, 204, 113))
 
--- Função de teleporte
-local function teleportToSell()
+-- Minimizar/restaurar
+local minimized = false
+minimizeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    contentFrame.Visible = not minimized
+    if minimized then
+        mainFrame.Size = UDim2.new(0,280,0,32)
+    else
+        mainFrame.Size = UDim2.new(0,280,0,150)
+    end
+end)
+
+-- Arrastar GUI
+local dragging = false
+local dragStart, startPos
+local dragInput
+
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+titleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input == dragInput then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- Função Safe: teleportar 10 studs acima mantendo Humanoid em pé
+safeBtn.MouseButton1Click:Connect(function()
     local char = player.Character or player.CharacterAdded:Wait()
-    local hrp = char:WaitForChild("HumanoidRootPart")
-    
-    local targetCFrame = sellModel:GetPivot()
-    hrp.CFrame = targetCFrame + Vector3.new(0, 5, 0)
-end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+    local signPart = workspace:FindFirstChild("Sign")
+    if hrp and humanoid and signPart and signPart:IsA("BasePart") then
+        -- Mantém o Humanoid em pé
+        hrp.CFrame = CFrame.new(signPart.Position + Vector3.new(0,10,0))
+    end
+end)
 
--- Função de velocidade
-local function setSpeed()
+-- Botão Speed dinâmico
+local speedActive = false
+speedBtn.MouseButton1Click:Connect(function()
     local char = player.Character or player.CharacterAdded:Wait()
-    local humanoid = char:WaitForChild("Humanoid")
-    humanoid.WalkSpeed = 50
-end
+    local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+    if not humanoid then return end
 
--- Conectar os botões
-sellButton.MouseButton1Click:Connect(teleportToSell)
-speedButton.MouseButton1Click:Connect(setSpeed)
+    if not speedActive then
+        humanoid.WalkSpeed = 50
+        speedActive = true
+        speedBtn.Text = "UnSpeed"
+        speedBtn.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+    else
+        humanoid.WalkSpeed = 16
+        speedActive = false
+        speedBtn.Text = "⚡ Speed"
+        speedBtn.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+    end
+end)
+
+speedBtn.MouseEnter:Connect(function()
+    speedBtn.BackgroundColor3 = speedBtn.BackgroundColor3:Lerp(Color3.fromRGB(180,180,180),0.15)
+end)
+speedBtn.MouseLeave:Connect(function()
+    speedBtn.BackgroundColor3 = speedActive and Color3.fromRGB(231,76,60) or Color3.fromRGB(46,204,113)
+end)
