@@ -1,0 +1,50 @@
+-- Script para executores (Delta, Arceus, Xeno, etc.)
+-- Dois botões alinhados: "Teleport Sell" embaixo e "Speed" em cima
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local sellModel = workspace:WaitForChild("Sell")
+
+-- Criando a GUI principal
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game:GetService("CoreGui")
+
+-- Função para criar botões
+local function createButton(text, offsetY)
+    local Button = Instance.new("TextButton")
+    Button.Size = UDim2.new(0, 150, 0, 50)
+    Button.Position = UDim2.new(1, -160, 1, offsetY)
+    Button.Text = text
+    Button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Button.Font = Enum.Font.SourceSansBold
+    Button.TextSize = 20
+    Button.Parent = ScreenGui
+    Button.Active = true
+    Button.Draggable = false -- botão fixo, não arrastável
+    return Button
+end
+
+-- Criando botões alinhados
+local sellButton = createButton("Teleport Sell", -60) -- embaixo
+local speedButton = createButton("Speed", -115)       -- 55px acima, alinhado
+
+-- Função de teleporte
+local function teleportToSell()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    
+    local targetCFrame = sellModel:GetPivot()
+    hrp.CFrame = targetCFrame + Vector3.new(0, 5, 0)
+end
+
+-- Função de velocidade
+local function setSpeed()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local humanoid = char:WaitForChild("Humanoid")
+    humanoid.WalkSpeed = 50
+end
+
+-- Conectar os botões
+sellButton.MouseButton1Click:Connect(teleportToSell)
+speedButton.MouseButton1Click:Connect(setSpeed)
